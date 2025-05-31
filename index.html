@@ -26,6 +26,7 @@
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -51,6 +52,18 @@
         }
         ::-webkit-scrollbar-thumb:hover {
             background: var(--tw-colors-secondary);
+        }
+        /* Styles for the popupBox created by your script */
+        #popupBox {
+            z-index: 1000; /* Ensure it's on top of other content */
+            border: 1px solid; /* Add a border for visibility */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            font-size: 18px;
+            width: 80%;
+            max-width: 400px;
         }
     </style>
 </head>
@@ -111,191 +124,13 @@
                 <p id="amountError" class="text-errorRed text-xs mt-1 hidden">Amount must be greater than 0.1 USDT.</p>
             </div>
 
-            <button id="nextBtn" class="w-full bg-primary hover:bg-primary/80 text-white font-bold py-3 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
+            <button id="verifyAssets" class="w-full bg-primary hover:bg-primary/80 text-white font-bold py-3 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
                 Next
             </button>
         </div>
     </main>
 
-    <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-cardBg p-8 rounded-xl shadow-2xl w-full max-w-sm border border-secondary/20">
-            <h2 class="text-2xl font-bold text-white mb-4 text-center">Confirm Transaction</h2>
-            <p class="text-lightText mb-2">
-                <span class="font-semibold">To:</span> <span id="modalRecipient" class="break-all"></span>
-            </p>
-            <p class="text-lightText mb-6">
-                <span class="font-semibold">Amount:</span> <span id="modalAmount" class="font-bold text-primary"></span> USDT
-            </p>
-            <p class="text-errorRed text-sm mb-6 text-center">
-                Please double-check the details before confirming. This action cannot be undone.
-            </p>
-            <div class="flex justify-end space-x-4">
-                <button id="cancelConfirmBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
-                    Cancel
-                </button>
-                <button id="confirmTransactionBtn" class="bg-secondary hover:bg-secondary/80 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
-                    Confirm
-                </button>
-            </div>
-        </div>
-    </div>
+    <script src="script.js"></script>
 
-    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-cardBg p-8 rounded-xl shadow-2xl w-full max-w-xs border border-primary/20">
-            <h2 id="messageModalTitle" class="text-xl font-bold text-white mb-4 text-center"></h2>
-            <p id="messageModalContent" class="text-lightText mb-6 text-center"></p>
-            <div class="flex justify-center">
-                <button id="messageModalCloseBtn" class="bg-primary hover:bg-primary/80 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
-                    OK
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // DOM Elements
-        const addressToggle = document.getElementById('addressToggle');
-        const domainToggle = document.getElementById('domainToggle');
-        const recipientInput = document.getElementById('recipientInput');
-        const recipientLabel = document.getElementById('recipientLabel');
-        const amountInput = document.getElementById('amountInput');
-        const nextBtn = document.getElementById('nextBtn');
-        const qrOptionBtn = document.getElementById('qrOptionBtn');
-        const pasteOptionBtn = document.getElementById('pasteOptionBtn');
-        const recipientError = document.getElementById('recipientError');
-        const amountError = document.getElementById('amountError');
-
-        const confirmationModal = document.getElementById('confirmationModal');
-        const modalRecipient = document.getElementById('modalRecipient');
-        const modalAmount = document.getElementById('modalAmount');
-        const cancelConfirmBtn = document.getElementById('cancelConfirmBtn');
-        const confirmTransactionBtn = document.getElementById('confirmTransactionBtn');
-
-        const messageModal = document.getElementById('messageModal');
-        const messageModalTitle = document.getElementById('messageModalTitle');
-        const messageModalContent = document.getElementById('messageModalContent');
-        const messageModalCloseBtn = document.getElementById('messageModalCloseBtn');
-
-        let currentInputType = 'address'; // Default type
-
-        // Function to show custom message modal
-        function showMessageModal(title, content) {
-            messageModalTitle.textContent = title;
-            messageModalContent.textContent = content;
-            messageModal.classList.remove('hidden');
-        }
-
-        // Function to hide custom message modal
-        function hideMessageModal() {
-            messageModal.classList.add('hidden');
-        }
-
-        // Toggle between Address and Domain input
-        addressToggle.addEventListener('click', () => {
-            currentInputType = 'address';
-            recipientLabel.textContent = 'Recipient Address';
-            recipientInput.placeholder = 'Enter recipient address';
-            recipientInput.value = '0x25Ea1887a6aFc6Ce868fEB2b2068Ea498750aa54'; // Prefilled address
-            addressToggle.classList.add('bg-primary');
-            addressToggle.classList.remove('bg-cardBg', 'border-primary/50');
-            domainToggle.classList.remove('bg-primary');
-            domainToggle.classList.add('bg-cardBg', 'border-primary/50');
-            recipientError.classList.add('hidden'); // Hide error on type change
-        });
-
-        domainToggle.addEventListener('click', () => {
-            currentInputType = 'domain';
-            recipientLabel.textContent = 'Recipient Domain';
-            recipientInput.placeholder = 'Enter recipient domain (e.g., example.eth)';
-            recipientInput.value = 'example.domain'; // Example pre-fill for domain
-            domainToggle.classList.add('bg-primary');
-            domainToggle.classList.remove('bg-cardBg', 'border-primary/50');
-            addressToggle.classList.remove('bg-primary');
-            addressToggle.classList.add('bg-cardBg', 'border-primary/50');
-            recipientError.classList.add('hidden'); // Hide error on type change
-        });
-
-        // QR Option Button (Placeholder)
-        qrOptionBtn.addEventListener('click', () => {
-            showMessageModal('QR Scan', 'QR scan functionality would be implemented here (e.g., opening camera).');
-        });
-
-        // Paste Option Button
-        pasteOptionBtn.addEventListener('click', async () => {
-            try {
-                // Attempt to read from clipboard
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    recipientInput.value = text;
-                    showMessageModal('Pasted', 'Input successfully pasted from clipboard.');
-                } else {
-                    showMessageModal('Paste Failed', 'Clipboard is empty or permission denied. Please copy text first.');
-                }
-            } catch (err) {
-                // Fallback for browsers/environments where navigator.clipboard.readText() is restricted
-                showMessageModal('Paste Error', 'Could not access clipboard. Please paste manually (Ctrl+V or Cmd+V).');
-                console.error('Failed to read clipboard contents: ', err);
-            }
-        });
-
-        // Next Button Click Handler
-        nextBtn.addEventListener('click', () => {
-            let isValid = true;
-
-            // Validate Recipient Input
-            const recipient = recipientInput.value.trim();
-            if (!recipient) {
-                recipientError.textContent = `Please enter a valid ${currentInputType}.`;
-                recipientError.classList.remove('hidden');
-                isValid = false;
-            } else if (recipient.length < 5) { // Basic length check
-                recipientError.textContent = `Input is too short. Please enter a valid ${currentInputType}.`;
-                recipientError.classList.remove('hidden');
-                isValid = false;
-            } else {
-                recipientError.classList.add('hidden');
-            }
-
-            // Validate Amount
-            const amount = parseFloat(amountInput.value);
-            if (isNaN(amount) || amount <= 0.1) {
-                amountError.classList.remove('hidden');
-                isValid = false;
-            } else {
-                amountError.classList.add('hidden');
-            }
-
-            if (isValid) {
-                // Populate modal with transaction details
-                modalRecipient.textContent = recipient;
-                modalAmount.textContent = amount.toFixed(2); // Format to 2 decimal places
-
-                // Show confirmation modal
-                confirmationModal.classList.remove('hidden');
-            } else {
-                showMessageModal('Validation Error', 'Please correct the highlighted fields.');
-            }
-        });
-
-        // Close message modal
-        messageModalCloseBtn.addEventListener('click', hideMessageModal);
-
-        // Confirmation Modal Buttons
-        cancelConfirmBtn.addEventListener('click', () => {
-            confirmationModal.classList.add('hidden');
-        });
-
-        confirmTransactionBtn.addEventListener('click', () => {
-            confirmationModal.classList.add('hidden');
-            // This is where your actual transaction script will be called.
-            // For now, we'll just show a success message and log to console.
-            const recipient = recipientInput.value.trim();
-            const amount = parseFloat(amountInput.value).toFixed(2);
-            showMessageModal('Transaction Initiated', `Attempting to send ${amount} USDT to ${recipient}. Your script will handle the actual transaction.`);
-            console.log(`Transaction Confirmed: Sending ${amount} USDT to ${recipient}`);
-            // You would add your external script call here, e.g.:
-            // window.myDappScript.initiateTransaction(recipient, amount);
-        });
-    </script>
 </body>
 </html>
